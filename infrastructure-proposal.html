@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infrastructure Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Epilogue:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0f;
+    --surface: #161618;
+    --border: #2a2a2e;
+    --accent: #c8f060;
+    --accent-dim: #8aaa30;
+    --warm: #f0c060;
+    --muted: #666672;
+    --text: #e8e8ec;
+    --text-dim: #9999aa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Epilogue', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Subtle noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .page {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 64px 32px 120px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 72px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.3;
+    max-width: 60px;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(36px, 6vw, 54px);
+    line-height: 1.1;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 60px;
+  }
+
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  h2 .mono {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  p {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  p strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* The core question block */
+  .question-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 28px 32px;
+    margin-bottom: 48px;
+    border-radius: 2px;
+  }
+
+  .question-block p {
+    font-size: 16px;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* App table */
+  .app-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 20px;
+  }
+
+  .app-row {
+    display: grid;
+    grid-template-columns: 160px 1fr auto;
+    align-items: start;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .app-row:last-child { border-bottom: none; }
+
+  .app-category {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+
+  .app-name {
+    font-size: 15px;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .app-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+
+  .app-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    align-self: start;
+    margin-top: 2px;
+  }
+
+  .tag-core {
+    background: rgba(200, 240, 96, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(200, 240, 96, 0.25);
+  }
+
+  .tag-optional {
+    background: rgba(240, 192, 96, 0.08);
+    color: var(--warm);
+    border: 1px solid rgba(240, 192, 96, 0.2);
+  }
+
+  .tag-external {
+    background: rgba(150, 150, 170, 0.08);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Two column tradeoff */
+  .tradeoff {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .tradeoff-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    border-radius: 2px;
+  }
+
+  .tradeoff-card h3 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .tradeoff-card.pro h3 { color: var(--accent); }
+  .tradeoff-card.con h3 { color: var(--warm); }
+
+  .tradeoff-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tradeoff-card ul li {
+    font-size: 13px;
+    color: var(--text-dim);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .tradeoff-card.pro ul li::before {
+    content: '+';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .tradeoff-card.con ul li::before {
+    content: '−';
+    position: absolute;
+    left: 0;
+    color: var(--warm);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Cost block */
+  .cost-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .cost-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 22px 20px;
+    border-radius: 2px;
+    text-align: center;
+  }
+
+  .cost-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    color: var(--text);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .cost-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .cost-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+  }
+
+  /* Recommendation */
+  .rec-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 32px;
+    border-radius: 2px;
+  }
+
+  .rec-block h2 {
+    margin-bottom: 12px;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .app-row { grid-template-columns: 1fr; gap: 6px; }
+    .app-tag { align-self: auto; }
+    .tradeoff { grid-template-columns: 1fr; }
+    .cost-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="header">
+    <h1>Should we run our <em>own</em> infrastructure?</h1>
+    <p class="subtitle">This isn't a recommendation, but a starting point for a conversation.</p>
+  </header>
+
+  <!-- The question -->
+  <section class="section">
+    <div class="question-block">
+      <p>Everyone relies on Discord, Facebook Events, Eventbrite, Soundcloud, and other platforms they don't control. They're free and familiar, but they make decisions about our data, our community, and our reach. <strong>What would it look like to run our own tools instead, and is that worth it?</strong></p>
+    </div>
+  </section>
+
+  <!-- What we'd run -->
+  <section class="section">
+    <h2>What we'd run <span class="mono">// the stack</span></h2>
+    <p>Each tool below replaces something we would depend on elsewhere. Everything connects to a single login system so that one account works for everything we control.</p>
+
+    <div class="app-grid">
+
+      <div class="app-row">
+        <div class="app-category">Accounts</div>
+        <div>
+          <div class="app-name">Authentik</div>
+          <div class="app-desc">One login for everything. Add or remove someone once, their access updates everywhere. Think of it as our own membership system.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Security</div>
+        <div>
+          <div class="app-name">Vaultwarden</div>
+          <div class="app-desc">Securely share passwords for external services (Stripe, Instagram) across the team. Encrypted, private, and much safer than sharing via chat.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Chat</div>
+        <div>
+          <div class="app-name">Matrix + Element</div>
+          <div class="app-desc">Replaces Discord. Persistent channels, mobile app with Element X, voice calls. Different access levels for team, volunteers, and community members.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Files &amp; Docs</div>
+        <div>
+          <div class="app-name">Nextcloud</div>
+          <div class="app-desc">Replaces Google Drive / Dropbox. Shared folders for flyers, press assets, contracts, event documents. Access controlled by role.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Project Mgmt</div>
+        <div>
+          <div class="app-name">Plane</div>
+          <div class="app-desc">Track tasks, assign roles to team members, and manage the event production timeline visually.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Radio</div>
+        <div>
+          <div class="app-name">AzuraCast</div>
+          <div class="app-desc">Live streaming and playlist broadcasting. Embeddable player for our website.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Ticketing</div>
+        <div>
+          <div class="app-name">Pretix</div>
+          <div class="app-desc">Replaces the Ticketing Co or EDMTrain. Self-service ticket sales, QR code door scanning, walk-up sales. Payment processes through Stripe.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Email</div>
+        <div>
+          <div class="app-name">Roundcube</div>
+          <div class="app-desc">Our own email addresses with a web interface. Actual sending routes through a delivery service so emails don't land in spam. Encrypted between team members if needed.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Status</div>
+        <div>
+          <div class="app-name">Uptime Kuma</div>
+          <div class="app-desc">A simple dashboard that shows whether all our services are running. Sends a notification to team chat immediately if something goes down.</div>
+        </div>
+        <div class="app-tag tag-core">Core</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Sending email</div>
+        <div>
+          <div class="app-name">Migadu (relay)</div>
+          <div class="app-desc">Email delivery through third-party relay keeps our emails out of spam folders. Everything else stays ours.</div>
+        </div>
+        <div class="app-tag tag-external">Hybrid</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Mixes &amp; Audio</div>
+        <div>
+          <div class="app-name">Funkwhale</div>
+          <div class="app-desc">Replaces SoundCloud / Mixcloud. Host recordings and mixes we own, publicly accessible, no algorithm deciding who sees them.</div>
+        </div>
+        <div class="app-tag tag-optional">Phase 2</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Video</div>
+        <div>
+          <div class="app-name">PeerTube</div>
+          <div class="app-desc">Replaces YouTube for content we want to own. Event recordings, aftermovies, artist features. Storage costs money — only worth it for content we care about keeping.</div>
+        </div>
+        <div class="app-tag tag-optional">Phase 2</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Public Face</div>
+        <div>
+          <div class="app-name">Ghost</div>
+          <div class="app-desc">Our public website, blog, and announcements. Write once and n8n automatically distributes to social media, and wherever else we care about. No copy-pasting across platforms.</div>
+        </div>
+        <div class="app-tag tag-optional">Phase 2</div>
+      </div>
+
+      <div class="app-row">
+        <div class="app-category">Automation</div>
+        <div>
+          <div class="app-name">n8n</div>
+          <div class="app-desc">The connective tissue. When we publish something on Ghost, n8n pushes it to social platforms automatically. Also handles other repetitive tasks between our tools.</div>
+        </div>
+        <div class="app-tag tag-optional">Phase 2</div>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Tradeoffs -->
+  <section class="section">
+    <h2>Honest tradeoffs <span class="mono">// what we gain and lose</span></h2>
+    <div class="tradeoff">
+      <div class="tradeoff-card pro">
+        <h3>What we gain</h3>
+        <ul>
+          <li>Our data stays ours, no platform owns our community list</li>
+          <li>No algorithm deciding who sees our events</li>
+          <li>No risk of account bans or policy changes shutting us down</li>
+          <li>Role-based access, one platform, and the team, volunteers, and community each see what they need</li>
+          <li>One login across all tools, add or remove people cleanly</li>
+          <li>No ads, no tracking</li>
+        </ul>
+      </div>
+      <div class="tradeoff-card con">
+        <h3>What it costs us</h3>
+        <ul>
+          <li>Someone has to maintain it — this is ongoing, not a one-time job</li>
+          <li>New members have a steeper learning curve than Discord</li>
+          <li>Things break, and we fix them instead of filing a support ticket</li>
+          <li>Initial setup takes real time and effort</li>
+          <li>Server and service costs every month</li>
+          <li>The tools are often less polished than commercial alternatives</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Costs -->
+  <section class="section">
+    <h2>What it costs <span class="mono">// rough numbers</span></h2>
+    <p>Estimate, of course, actual costs depend on how much storage and traffic we use. No ticket fees offsets this depending on volume.</p>
+    <div class="cost-grid">
+      <div class="cost-card">
+        <span class="cost-number">~$20</span>
+        <span class="cost-unit">per month</span>
+        <span class="cost-label">Server hosting for the core stack</span>
+      </div>
+      <div class="cost-card">
+        <span class="cost-number">~$10</span>
+        <span class="cost-unit">per month</span>
+        <span class="cost-label">Email relay + domain registration</span>
+      </div>
+      <div class="cost-card">
+        <span class="cost-number">1–4</span>
+        <span class="cost-unit">months</span>
+        <span class="cost-label">Realistic time to stable customized setup</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- What we're not replacing -->
+  <section class="section">
+    <h2>What we're not replacing <span class="mono">// realistic limits</span></h2>
+    <p>Some platforms are too embedded in how people find events to abandon entirely. <strong>Facebook Events and Instagram</strong> stay as outward-facing discovery tools, we're not trying to win people away from those. We'd use our own infrastructure for the people already in the community, and for the team running things.</p>
+    <p>Payment processing (Stripe) also stays external. There's no realistic self-hosted alternative for taking ticket money safely.</p>
+  </section>
+
+  <!-- Recommendation block -->
+  <div class="rec-block">
+    <h2>The question <span class="mono">// what we're deciding</span></h2>
+    <p>This isn't all-or-nothing. The minimum useful version — <strong>chat, file sharing, and ticketing</strong> — could be running soon. The radio and media archive can follow once the core is stable.</p>
+    <p>The real question is whether we have  the time and desire to maintain this ongoing. The tools exist and they work. The bottleneck is people, not technology.</p>
+    <p style="margin:0; color: var(--text);">If the answer is no, that's a valid answer. Staying on Discord costs nothing and requires nothing. This is worth doing if we want ownership and want to run it — not otherwise.</p>
+  </div>
+</div>
+</body>
+</html>
